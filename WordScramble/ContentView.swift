@@ -7,11 +7,19 @@ struct ContentView: View {
     @State private var errorTitle = ""
     @State private var errorMessage = ""
     @State private var showingError = false
+    @State private var score = 0
 
     
     var body: some View {
         NavigationStack {
             List{
+                HStack(spacing: 120){
+                    Text(rootWord)
+                        .font(.title)
+                        .fontWeight(.bold)
+                    Text("Score: \(score)")
+                        .font(.headline)
+                }
                 Section {
                     TextField("Enter your word", text: $newWord)
                         .textInputAutocapitalization(.never)
@@ -26,7 +34,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle(rootWord)
+            .listStyle(.plain)
             .onSubmit(addNewWord)
             .onAppear(perform: startGame)
             .alert(errorTitle, isPresented: $showingError) {
@@ -34,14 +42,27 @@ struct ContentView: View {
             } message: {
                 Text(errorMessage)
             }
+            .toolbar{
+                Button("New Game", action: startGame)
+            }
         }
     }
     func addNewWord() {
         let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard answer.count > 0 else { return }
         
+        guard answer.count > 3 else {
+            wordError(title: "Word too short", message: "You need more than 3 letters for that!")
+            return
+        }
+        
+        guard answer != rootWord else {
+            wordError(title: "That's the root word", message: "Be more creative!")
+            return
+        }
+        
         guard isOriginal(word: answer) else {
-            wordError(title: "Word used already", message: "Be more original")
+            wordError(title: "Word used already", message: "Be more original!")
             return
         }
 
@@ -49,10 +70,21 @@ struct ContentView: View {
             wordError(title: "Word not possible", message: "You can't spell that word from '\(rootWord)'!")
             return
         }
-
+        
         guard isReal(word: answer) else {
             wordError(title: "Word not recognized", message: "You can't just make them up, you know!")
             return
+        }
+        
+        switch answer.count {
+        case 4:
+            score += 1
+        case 5...6:
+            score += 2
+        case 7...:
+            score += 3
+        default:
+            break
         }
         
         withAnimation {
@@ -67,6 +99,9 @@ struct ContentView: View {
                 let allWords = startWords.components(separatedBy: "\n")
                 
                 rootWord = allWords.randomElement() ?? "silkworm"
+                usedWords.removeAll()
+                newWord = ""
+                score = 0
                 
                 return
             }
